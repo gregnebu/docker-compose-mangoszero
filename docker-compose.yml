@@ -1,0 +1,46 @@
+version: '2'
+services:
+  mangoszero-db:
+    image: rancher.teammu.com:5000/mangoszero-db
+    volumes:
+      - ./password.txt:/tmp/password.txt
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: 1
+      MYSQL_MANGOS_PASSWORD: ITahmoorei4Eetahshiethai0EeK6jie
+  pma:
+    image: phpmyadmin/phpmyadmin
+    depends_on:
+      - mangoszero-db
+    links:
+      - mangoszero-db:db
+    ports:
+      - 8082:80
+  realmdzero:
+    image: rancher.teammu.com:5000/mangosrealmd
+    depends_on:
+      - mangoszero-db
+    volumes:
+      - ./realmd.conf:/etc/mangos/realmd.conf
+      - ./wait-for-it.sh:/wait-for-db.sh
+      - ./password.txt:/tmp/password.txt:ro
+    links:
+      - mangoszero-db:mysql
+    ports:
+      - 3724:3724
+    command: /wait-for-db.sh -t 60 mysql:3306 -- /usr/bin/realmd -c /etc/mangos/realmd.conf
+  mangoszero:
+    image: rancher.teammu.com:5000/mangoszero
+    depends_on:
+      - mangoszero-db
+    volumes:
+      - ./mangosd.conf:/etc/mangos/mangosd.conf
+        #- ./aiplayerbot.conf:/etc/aiplayerbot.conf
+      - ./data:/data
+      - ./wait-for-it.sh:/wait-for-db.sh
+      - ./password.txt:/tmp/password.txt:ro
+    links:
+      - mangoszero-db:mysql
+    ports:
+      - 3443:3443
+      - 8085:8085
+    command: /wait-for-db.sh -t 60 mysql:3306 -- /usr/bin/mangosd -c /etc/mangos/mangosd.conf
